@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+
+<body>
+    Admin ID:
+    <input type="text" id="admin_id" placeholder="Enter Admin ID">
+    Room ID:
+    <input type="text" id="room_id" placeholder="Enter Room ID">
+    <button id="btn_join">Join Room</button>
+    <br><br>
+    Message:
+    <input type="text" id="chat" placeholder="Type your message">
+    <button id="btn_send">Send</button>
+
+    <!-- Message Display Area -->
+    <div id="messages">
+        <h2>Chat History</h2>
+        <ul id="messageList"></ul>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const btn_join = document.getElementById('btn_join');
+        const btn_send = document.getElementById('btn_send');
+        const room_id = document.getElementById('room_id');
+        const admin_id = document.getElementById('admin_id');
+        const chat = document.getElementById('chat');
+        const messageList = document.getElementById('messageList');
+
+        // Join the room
+        btn_join.addEventListener('click', () => {
+            const room = room_id.value;
+            socket.emit("join", room);
+            console.log(`Joined room ${room}`);
+        });
+
+        // Send message
+
+        btn_send.addEventListener('click', () => {
+            const message = {
+                id: -1,
+                receiver_id: room_id.value,
+                content: chat.value,
+                sender_id: 12,
+                room_id: room_id.value,
+                role: 'admin',
+                updated_time: "",
+                created_time: getCurrentFormattedTime()
+            };
+            socket.emit("message", JSON.stringify(message));
+            chat.value = '';
+            console.log(`Message sent: ${JSON.stringify(message)}`);
+        });
+
+        socket.on("thread", function (data) {
+            const parsedMessage = JSON.parse(data);
+            displayMessage(parsedMessage);
+            console.log(`Received message: ${JSON.stringify(data)}`);
+        });
+
+        socket.on("history", function (data) {
+            document.getElementById('messageList').innerHTML = ""
+            const messages = JSON.parse(JSON.stringify(data));
+            messages.forEach(message => {
+                displayMessage(message);
+            });
+            console.log(`Chat history: ${JSON.stringify(data)}`);
+        });
+
+        function displayMessage(message) {
+            const messageElement = document.createElement('li');
+            messageElement.innerText = `${message.sender_id}: ${message.content}`;
+            messageList.appendChild(messageElement);
+        }
+        function getCurrentFormattedTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cần cộng thêm 1
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+    </script>
+</body>
+
+</html>
